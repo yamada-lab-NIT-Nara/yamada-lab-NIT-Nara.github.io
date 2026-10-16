@@ -266,3 +266,58 @@ html, body, button, input, select, textarea,
 .seeds-home-inner>a{font-size:13px;font-weight:700;color:#0a648d;white-space:nowrap}
 @media(max-width:850px){.seeds-layout{grid-template-columns:1fr}.seeds-copy{padding:24px}.seeds-heading{align-items:flex-start;flex-direction:column}.seeds-home-inner{align-items:flex-start;flex-direction:column;gap:10px}}
 @media(max-width:600px){.seeds-jump{grid-template-columns:1fr}.seeds-crosslink-inner{flex-direction:column;align-items:flex-start}.seeds-section{padding:42px 0}.seeds-introduction h2{font-size:23px}}
+
+/* Third hero slide: authentic user-provided XPS equipment photograph.
+   Replace the generic illustrative background; preserve slide text and layout. */
+.hero-slide[data-hero="2"] .alt-two {
+  background-image: linear-gradient(90deg, rgba(2,20,41,.98) 0%, rgba(2,20,41,.94) 28%, rgba(2,20,41,.76) 42%, rgba(2,20,41,.30) 66%, rgba(2,20,41,.08) 100%), url('xps_actual_photo.png') !important;
+  background-position: center, right 46% !important;
+  background-size: cover, cover !important;
+  background-repeat: no-repeat !important;
+}
+.hero-slide[data-hero="2"] .hero-shade {
+  background: linear-gradient(90deg, rgba(2,20,41,.42), transparent 76%) !important;
+}
+@media(max-width:800px){
+  .hero-slide[data-hero="2"] .alt-two {
+    background-image:linear-gradient(90deg,rgba(2,20,41,.95),rgba(2,20,41,.58)),url('xps_actual_photo.png') !important;
+    background-position:center,right center !important;
+  }
+}
+
+/* Authentic JEOL FE-SEM photo supplied by the laboratory */
+.facility-image img[src$="fesem_actual_photo.jpg"] {object-position:50% 39%;}
+.equipment-actual-photo {display:block;width:100%;height:260px;object-fit:cover;object-position:center 36%;margin:12px 0 16px;border-radius:2px;}
+
+/* Technology seeds showcase: horizontally scrollable cards, no growing title list */
+.seed-showcase{background:linear-gradient(112deg,#edf6fa 0%,#e5f1f8 100%);padding:36px 0 32px;border-top:1px solid #d5e6ee;border-bottom:1px solid #d5e6ee}
+.seed-showcase-grid{display:grid;grid-template-columns:minmax(240px,28%) minmax(0,1fr);gap:28px;align-items:start}
+.seed-showcase-intro{padding:12px 0}
+.seed-showcase-intro h2{font-size:clamp(24px,2.2vw,32px);color:#0b304e;line-height:1.4;margin:7px 0 14px}
+.seed-showcase-intro h2 span{display:block}
+.seed-showcase-intro>p:not(.seeds-eyebrow){font-size:13px;line-height:1.95;color:#455d6e;max-width:330px;margin:0 0 21px}
+.seed-showcase-all{display:inline-flex;justify-content:space-between;gap:22px;align-items:center;background:#073257;color:#fff;padding:15px 19px;font-size:13px;font-weight:bold;min-width:215px}
+.seed-showcase-all:hover{background:#0d618b;color:#fff}
+.seed-carousel-area{min-width:0}
+.seed-carousel{display:flex;gap:15px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;padding:2px 2px 13px}
+.seed-carousel::-webkit-scrollbar{display:none}
+.seed-carousel-card{flex:0 0 clamp(228px,36%,310px);min-width:0;background:#fff;color:#0b304e;box-shadow:0 4px 18px rgba(13,57,86,.10);border:1px solid #d7e5ec;scroll-snap-align:start;transition:transform .2s,box-shadow .2s}
+.seed-carousel-card:hover{transform:translateY(-3px);box-shadow:0 9px 25px rgba(13,57,86,.18);color:#0b304e}
+.seed-carousel-photo{height:145px;overflow:hidden;background:#fff}
+.seed-carousel-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.seed-carousel-card:nth-child(1) .seed-carousel-photo img{object-fit:contain}
+.seed-carousel-card:nth-child(2) .seed-carousel-photo img{object-fit:contain}
+.seed-carousel-copy{padding:13px 16px 17px;position:relative;min-height:94px}
+.seed-carousel-copy span{display:block;color:#4380a0;font:700 10px/1.5 Arial,sans-serif;letter-spacing:.09em;margin-bottom:6px}
+.seed-carousel-copy strong{display:block;padding-right:22px;font-size:14px;line-height:1.6}
+.seed-carousel-copy b{position:absolute;right:15px;bottom:17px;color:#0c6894;font-size:21px;font-weight:normal}
+.seed-carousel-controls{display:flex;justify-content:center;align-items:center;gap:13px;padding-top:7px}
+.seed-carousel-arrow{width:35px;height:35px;border:1px solid #c9e0ec;border-radius:50%;background:#fff;color:#0d3b5a;font-size:26px;line-height:1;cursor:pointer}
+.seed-carousel-arrow:disabled{opacity:.35;cursor:default}
+.seed-carousel-status{font:700 11px Arial,sans-serif;letter-spacing:.1em;color:#346b8d;min-width:55px;text-align:center}
+.seeds-jump{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seeds-jump a{font-size:13px;line-height:1.65;gap:10px;padding:15px 13px}
+@media(max-width:1050px){.seed-showcase-grid{grid-template-columns:240px minmax(0,1fr);gap:20px}.seed-carousel-card{flex-basis:clamp(218px,60%,280px)}}
+@media(max-width:780px){.seed-showcase-grid{grid-template-columns:1fr}.seed-showcase-intro{padding:0}.seed-showcase-intro h2 span{display:inline}.seed-showcase-intro>p:not(.seeds-eyebrow){max-width:none}.seed-carousel-card{flex-basis:min(70vw,290px)}.seeds-jump{grid-template-columns:1fr}}
+@media(max-width:480px){.seed-showcase{padding:28px 0}.seed-showcase-intro h2{font-size:24px}.seed-carousel-card{flex-basis:78vw}.seed-carousel-photo{height:160px}}
+@media(prefers-reduced-motion:reduce){.seed-carousel{scroll-behavior:auto}.seed-carousel-card{transition:none}}
