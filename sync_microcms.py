@@ -34,7 +34,11 @@ def safe_id(s):
         raise ValueError(f'Unsafe CMS content ID: {s!r}')
     return str(s)
 
-def val(obj,key):return html.escape(str(obj.get(key) or ''),quote=True)
+def val(obj,key):
+    value=obj.get(key) or ''
+    if isinstance(value,list): value=', '.join(map(str,value))
+    return html.escape(str(value),quote=True)
+
 
 def image_url(obj):
     image=obj.get('thumbnail')
@@ -97,6 +101,12 @@ def article_page(item,kind):
 def main():
     # Fetch all endpoints first: a failing API never partially changes the website.
     news=get_records('news'); seeds=get_records('seeds')
+    print(f'microCMS API fetch successful: news={len(news)}, seeds={len(seeds)}')
+    # A successful but unexpectedly empty API response must not silently erase CMS listings.
+    for endpoint,items in [('news',news),('seeds',seeds)]:
+        for item in items:
+            if not isinstance(item,dict) or not item.get('id') or not item.get('title'):
+                raise ValueError(f'{endpoint}: an item has no id or title; deployment cancelled')
     news.sort(key=date,reverse=True)
     seeds.sort(key=lambda x:(int(x.get('sortOrder') or 9999),x.get('id','')))
     for endpoint,items in [('news',news),('seeds',seeds)]:
@@ -123,6 +133,12 @@ def main():
     for doc in (home,archive,seedspage):
         if doc.head:
             link=doc.new_tag('link',rel='stylesheet',href='assets/cms.css');doc.head.append(link)
+    # Validate all output paths before modifying any page.
+    for endpoint,items in [('news',news),('seeds',seeds)]:
+        for item in items:
+            path=ROOT/endpoint/(safe_id(item['id'])+'.html')
+            if path.exists() and not path.read_text(encoding='utf-8').startswith('<!DOCTYPE html><!-- generated-by-microcms -->'):
+                print('Existing hand-authored article will be preserved:',path)
     for name,doc in [('index.html',home),('news.html',archive),('seeds.html',seedspage)]:
         (ROOT/name).write_text(str(doc),encoding='utf-8')
     for endpoint,items in [('news',news),('seeds',seeds)]:
