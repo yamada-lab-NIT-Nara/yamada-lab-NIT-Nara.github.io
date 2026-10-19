@@ -1,0 +1,99 @@
+{
+  "source": "https://orcid.org/0000-0003-0958-1529",
+  "updated_at": "2026-10-19T08:39:45.133340+00:00",
+  "funding": [
+    {
+      "title": "Study on novel functional IL/LiILBP hybrid membrane as pseudo-SEI  film for negative electrode in aqueous media",
+      "organization": "Japan Society for the Promotion of Science",
+      "start_year": "2024",
+      "end_year": "2027",
+      "type": "grant",
+      "identifiers": [
+        {
+          "type": "grant_number",
+          "value": "24K01617"
+        }
+      ],
+      "url": "https://app.dimensions.ai/details/grant/grant.14643681"
+    },
+    {
+      "title": "Wettability control of textiles using atmospheric plasma jet treatments",
+      "organization": "Japan Society for the Promotion of Science",
+      "start_year": "2021",
+      "end_year": "2024",
+      "type": "grant",
+      "identifiers": [
+        {
+          "type": "grant_number",
+          "value": "21H00811"
+        }
+      ],
+      "url": "https://app.dimensions.ai/details/grant/grant.9670925"
+    },
+    {
+      "title": "PEFC用イオン液体含浸型Pt/MPC高活性・高耐久カソード触媒の開発",
+      "organization": "New Energy and Industrial Technology Development Organization",
+      "start_year": "2020",
+      "end_year": "2025",
+      "type": "contract",
+      "identifiers": [],
+      "url": ""
+    },
+    {
+      "title": "Studies on ORR Activity and Durability on Ptshell/Aucore/Mcore Multi core-shell catalyst for PEFCs",
+      "organization": "Japan Society for the Promotion of Science",
+      "start_year": "2016",
+      "end_year": "2019",
+      "type": "grant",
+      "identifiers": [
+        {
+          "type": "grant_number",
+          "value": "16K21577"
+        }
+      ],
+      "url": "https://app.dimensions.ai/details/grant/grant.5930266"
+    },
+    {
+      "title": "Antifouling design of textiles for sustainable clothing life",
+      "organization": "Japan Society for the Promotion of Science",
+      "start_year": "2014",
+      "end_year": "2017",
+      "type": "grant",
+      "identifiers": [
+        {
+          "type": "grant_number",
+          "value": "26282012"
+        }
+      ],
+      "url": "https://app.dimensions.ai/details/grant/grant.6133005"
+    },
+    {
+      "title": "DMFC用新規機能性を有するST-type Core-Shell アノード触媒の開発",
+      "organization": "Japan Science and Technology Agency",
+      "start_year": "2011",
+      "end_year": "2012",
+      "type": "grant",
+      "identifiers": [
+        {
+          "type": "grant_number",
+          "value": "11104451"
+        }
+      ],
+      "url": "https://app.dimensions.ai/details/grant/grant.9027782"
+    },
+    {
+      "title": "A Study of Aushell/Ptshell/M stability for Polymer ElectrolyteFuel Cell",
+      "organization": "Japan Society for the Promotion of Science",
+      "start_year": "2011",
+      "end_year": "2012",
+      "type": "grant",
+      "identifiers": [
+        {
+          "type": "grant_number",
+          "value": "23710112"
+        }
+      ],
+      "url": "https://app.dimensions.ai/details/grant/grant.6073203"
+    }
+  ]
+}
