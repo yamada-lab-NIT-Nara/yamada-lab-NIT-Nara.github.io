@@ -274,13 +274,32 @@ def facility_tags(item):
     if not isinstance(raw,str):return []
     return [v.strip(' ・\t\u3000') for v in re.split(r'[\n\r]+|(?<!\S)[・●•](?=\s|\S)',raw) if v.strip(' ・\t\u3000')]
 
-# Facility groups use the category selected in microCMS. Unrecognized labels
-# remain visible as their own groups; no CMS schema change is required.
+# Use a small, consistent set of display groups instead of creating one section
+# for each microCMS label. The original microCMS category remains on each card.
+FACILITY_GROUP_ORDER = (
+    '表面・形態観察',
+    '組成・構造分析',
+    '電気化学測定・評価',
+    '材料合成・試料調製',
+    'その他の研究設備',
+)
+
 def facility_group(item):
-    raw = category_text(item.get('category')).strip()
-    if not raw or raw in ('RESEARCH FACILITY', '研究設備', '設備', 'その他'):
-        return 'その他の研究設備'
-    return raw
+    category = category_text(item.get('category')).strip()
+    name = str(item.get('name') or '')
+    combined = (category + ' ' + name).lower()
+    # Explicit device names take precedence over generic CMS labels.
+    if any(x in combined for x in ('電気化学', 'ポテンショ', '充放電', 'インピーダンス', '燃料電池', 'サイクリックボルタン', 'tdgsc', 'potentiostat', 'galvanostat', 'battery cycler', 'electrochemical')):
+        return '電気化学測定・評価'
+    if any(x in combined for x in ('合成', '調製', '乾燥', '熱処理', '焼成', '炉', 'グローブボックス', '撹拌', '蒸着', 'スピンコート', '成膜', '電気炉', 'vacuum oven', 'furnace', 'glovebox')):
+        return '材料合成・試料調製'
+    if any(x in combined for x in ('xps', 'xrd', 'eds', 'edx', '蛍光x線', '回折', '分光', '組成', '結晶構造', 'x線光電子', 'x線回折', 'ftir', 'raman', 'ラマン', '赤外', '元素分析', '熱分析', 'tg-dsc', 'tg/dsc', 'tgdsc', 'dsc')):
+        return '組成・構造分析'
+    if any(x in combined for x in ('sem', 'spm', 'afm', '顕微鏡', '表面観察', '形態観察', '走査型', '電子顕微鏡', 'microscop')):
+        return '表面・形態観察'
+    if any(x in combined for x in ('評価', '測定')):
+        return '電気化学測定・評価' if '電極' in combined else 'その他の研究設備'
+    return 'その他の研究設備'
 
 def build_facilities(items):
     home=soup(ROOT/'index.html')
@@ -297,7 +316,10 @@ def build_facilities(items):
     for item in items:
         grouped.setdefault(facility_group(item), []).append(item)
     sequence = 0
-    for group_name, group_items in grouped.items():
+    for group_name in FACILITY_GROUP_ORDER:
+        group_items = grouped.get(group_name, [])
+        if not group_items:
+            continue
         section = el(page,'section','cms-equipment-group')
         heading = el(page,'h3','cms-equipment-group-title',group_name)
         section.append(heading)
