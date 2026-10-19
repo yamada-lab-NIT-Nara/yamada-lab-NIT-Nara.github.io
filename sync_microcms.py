@@ -27,6 +27,20 @@ def write(path,html):path.parent.mkdir(parents=True,exist_ok=True);path.write_te
 def img_url(item):
     x=item.get('thumbnail') or {}
     return x.get('url','') if isinstance(x,dict) else ''
+def news_gallery_urls(item):
+    """Read the case-sensitive microCMS multiple-image field Photo."""
+    photos = item.get('Photo') or []
+    if isinstance(photos, dict):
+        photos = [photos]
+    if not isinstance(photos, list):
+        return []
+    urls = []
+    for photo in photos:
+        url = photo.get('url') if isinstance(photo, dict) else None
+        if isinstance(url, str) and url.startswith(('https://', 'http://')) and url not in urls:
+            urls.append(url)
+    return urls
+
 def date(item):
     d=item.get('date') or item.get('publishedAt') or ''
     try:return datetime.fromisoformat(d.replace('Z','+00:00')).strftime('%Y.%m.%d')
@@ -106,6 +120,20 @@ def build_news(news):
         article.append(el(detail,'time',text=dt));article.append(el(detail,'h2',text=title))
         if photo:article.append(el(detail,'img','article-photo',src=photo,alt=title,loading='lazy'))
         content=el(detail,'div','cms-richtext');insert_html(content,item.get('body',''));article.append(content)
+        gallery_urls = news_gallery_urls(item)
+        if gallery_urls:
+            gallery = el(detail, 'section', 'cms-news-gallery')
+            gallery.append(el(detail, 'h3', text='PHOTO GALLERY'))
+            gallery_grid = el(detail, 'div', 'cms-news-gallery-grid')
+            for i, image_url in enumerate(gallery_urls, 1):
+                link = el(detail, 'a', 'cms-news-gallery-item', href=image_url,
+                          target='_blank', rel='noopener noreferrer')
+                link['aria-label'] = f'{title} 写真{i}を拡大表示'
+                link.append(el(detail, 'img', src=image_url,
+                               alt=f'{title} 写真{i}', loading='lazy'))
+                gallery_grid.append(link)
+            gallery.append(gallery_grid)
+            article.append(gallery)
         if item.get('sourceUrl'):
             p=el(detail,'p');a=el(detail,'a',text=item.get('sourceName') or '関連リンク',href=item['sourceUrl'],target='_blank',rel='noopener noreferrer');p.append(a);article.append(p)
         p=el(detail,'p');p.append(el(detail,'a',text='← NEWS一覧へ戻る',href='../news.html'));article.append(p)
