@@ -426,3 +426,10 @@ a.cms-member-card:hover{border-color:#32a5a8;transform:translateY(-2px)}
 .cms-equipment-group-grid>.cms-equipment-card{grid-column:auto!important;min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden}
 .cms-equipment-group-grid>.cms-equipment-card img.equipment-actual-photo{display:block;width:100%;height:230px;max-height:230px;object-fit:contain;object-position:center;background:#f0f4f6}
 @media(max-width:720px){.cms-equipment-group-grid{grid-template-columns:minmax(0,1fr)}.cms-equipment-group-grid>.cms-equipment-card img.equipment-actual-photo{height:200px;max-height:200px}}
+
+/* Facilities group layout: each group spans full width, cards stay two columns. */
+.equipment-grid{display:block!important;width:100%;max-width:none}
+.equipment-grid>.cms-equipment-group{display:block!important;width:100%;max-width:none;box-sizing:border-box;clear:both}
+.equipment-grid .cms-equipment-group-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px;align-items:start;width:100%;min-width:0}
+.equipment-grid .cms-equipment-group-grid>.equipment-card{grid-column:auto!important;width:100%!important;max-width:none!important;min-width:0;box-sizing:border-box;margin:0}
+@media(max-width:720px){.equipment-grid .cms-equipment-group-grid{grid-template-columns:minmax(0,1fr)!important}}
