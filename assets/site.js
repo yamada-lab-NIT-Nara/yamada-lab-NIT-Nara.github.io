@@ -33,3 +33,42 @@
   }));
   if(rows.length)filterHomeNews(document.querySelector('[data-news].active')?.dataset.news||'all');
 })();
+
+// CMS research-facility carousel. Independent of the NEWS and hero controls.
+(()=>{
+  const carousel=document.querySelector('.cms-facility-slider');
+  if(!carousel)return;
+  const slides=[...carousel.querySelectorAll('.cms-facility-slide')];
+  const dots=[...carousel.querySelectorAll('.cms-facility-dot')];
+  if(!slides.length)return;
+  let current=Math.max(0,slides.findIndex(slide=>slide.classList.contains('is-active')));
+  function show(index){
+    current=(index+slides.length)%slides.length;
+    slides.forEach((slide,i)=>{
+      const active=i===current;
+      slide.classList.toggle('is-active',active);
+      slide.setAttribute('aria-hidden',String(!active));
+      slide.hidden=!active;
+      slide.tabIndex=active?0:-1;
+    });
+    dots.forEach((dot,i)=>{
+      const active=i===current;
+      dot.classList.toggle('is-active',active);
+      dot.setAttribute('aria-pressed',String(active));
+    });
+  }
+  // Ensure hidden slides remain hidden even if a layout CSS rule sets display:grid.
+  if(!document.getElementById('cms-facility-slide-visibility')){
+    const style=document.createElement('style');
+    style.id='cms-facility-slide-visibility';
+    style.textContent='.cms-facility-slide[hidden]{display:none!important}';
+    document.head.append(style);
+  }
+  carousel.querySelector('.cms-facility-prev')?.addEventListener('click',()=>show(current-1));
+  carousel.querySelector('.cms-facility-next')?.addEventListener('click',()=>show(current+1));
+  dots.forEach((dot,i)=>dot.addEventListener('click',()=>show(Number(dot.dataset.index??i))));
+  show(current);
+  if(slides.length>1&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    setInterval(()=>{if(!document.hidden)show(current+1)},7000);
+  }
+})();
