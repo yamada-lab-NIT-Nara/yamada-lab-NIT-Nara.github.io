@@ -48,8 +48,7 @@ jobs:
             fi
           fi
 
-      # microCMSからNEWS・研究シーズを取得してHTMLを生成
-      - name: Generate NEWS and research seeds from microCMS
+      - name: Generate microCMS NEWS, research seeds and members
         env:
           MICROCMS_SERVICE_ID: yamada-lab-nara
           MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}
@@ -62,3 +61,6 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

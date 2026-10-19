@@ -1,4 +1,0 @@
-既存のサイトを維持するためのmicroCMS連携パッチです。
-このZIPの中身をディレクトリ構造のままGitHubリポジトリのルートに上書きしてください。
-既存のindex.html、news.html、seeds.htmlや画像を削除しないでください。
-設定・テスト手順はCMS_SETUP.mdをご覧ください。
