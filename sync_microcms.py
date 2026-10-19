@@ -46,35 +46,39 @@ def category_text(x, default=''):
         return str(x.get('name') or x.get('value') or x.get('id') or default)
     return str(x) if x is not None else default
 
+# Category values are the explicit microCMS select labels, not keywords in headlines.
+# A multi-select value can contain several labels; some older labels also join
+# independent categories with Japanese middle dots.
+NEWS_CATEGORY_MAP = {
+    'イベント': {'event'}, '交流': {'event'}, 'イベント・交流': {'event'},
+    '研究成果': {'research'}, '研究': {'research'},
+    '設備': {'research'}, '研究設備': {'research'},
+    '学会': {'research'}, '研究発表': {'research'}, '学会発表': {'research'},
+    '受賞': {'award'}, '表彰': {'award'},
+    'お知らせ': set(),
+}
+
 def news_categories(raw):
-    """Classify published CMS category labels into multiple tab groups."""
     if isinstance(raw, list):
         labels = [category_text(v).strip() for v in raw]
     else:
         labels = [category_text(raw).strip()]
-    labels = [v for v in labels if v]
     groups = set()
     for label in labels:
-        # Composite labels can belong to multiple categories.
-        if any(word in label for word in ('イベント', '交流', 'お知らせ', '講習', '講演', 'セミナー', 'ワークショップ', '地域', '開催', '見学')):
-            groups.add('event')
-        if any(word in label for word in ('研究', '設備', '論文', '成果', '学会', '発表', '特許', '触媒', '分析')):
-            groups.add('research')
-        if any(word in label for word in ('受賞', '表彰', '賞')):
-            groups.add('award')
-        # The archive '受賞・成果' also includes research achievements.
-        if any(word in label for word in ('研究成果', '論文', '学会', '研究発表', '特許')):
-            groups.add('award')
-    if not groups:groups.add('event')
+        # Split compound labels such as イベント・交流・研究成果.
+        for part in re.split(r'[・／/,、\s]+', label):
+            if part:
+                groups.update(NEWS_CATEGORY_MAP.get(part, set()))
     return groups
 
 def cat_news(raw):
-    groups=news_categories(raw)
-    return ' '.join(v for v in ('event','research','award') if v in groups)
+    groups = news_categories(raw)
+    return ' '.join(g for g in ('event','research','award') if g in groups)
 
 def news_archive_categories(raw):
-    groups=news_categories(raw)
-    return ' '.join(v for v in ('event','award') if v in groups)
+    groups = news_categories(raw)
+    # Archive combines awards and research results in one tab.
+    return ' '.join(g for g in ('event','award') if g in groups or (g == 'award' and 'research' in groups))
 
 def safeid(x):
     if not re.fullmatch(r'[a-zA-Z0-9_-]+',x or ''):raise ValueError('Invalid microCMS content ID')
