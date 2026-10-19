@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -35,18 +35,6 @@ jobs:
           ORCID_CLIENT_ID: ${{ secrets.ORCID_CLIENT_ID }}
           ORCID_CLIENT_SECRET: ${{ secrets.ORCID_CLIENT_SECRET }}
         run: python sync_orcid.py
-
-      - name: Save updated ORCID data
-        run: |
-          if [ -f data/orcid.json ] || [ -f data/funding.json ]; then
-            git add data/orcid.json data/funding.json
-            if ! git diff --cached --quiet; then
-              git config user.name 'github-actions[bot]'
-              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-              git commit -m 'Update public ORCID publications and funding'
-              git push
-            fi
-          fi
 
       - name: Generate microCMS NEWS, seeds, members and facilities
         env:
