@@ -46,6 +46,22 @@ def category_text(x, default=''):
         return str(x.get('name') or x.get('value') or x.get('id') or default)
     return str(x) if x is not None else default
 
+def news_archive_categories(raw):
+    """Map one or more microCMS category labels to archive filter groups."""
+    if isinstance(raw, list):
+        labels=[category_text(v) for v in raw]
+    else:
+        labels=[category_text(raw)]
+    labels=[x.strip() for x in labels if x and x.strip()]
+    awards=('受賞','成果','論文','研究発表','学会','発表','特許','表彰')
+    events=('イベント','交流','お知らせ','講習','講演','セミナー','ワークショップ','地域','学生','活動','開催','参加')
+    groups=set()
+    for label in labels:
+        if any(word in label for word in awards):groups.add('award')
+        if any(word in label for word in events):groups.add('event')
+    if not groups:groups.add('event')
+    return ' '.join(x for x in ('event','award') if x in groups)
+
 def cat_news(x):
     x=category_text(x)
     x=x or 'お知らせ'
@@ -65,7 +81,7 @@ def build_news(news):
         if photo:a.append(el(home,'img',src=photo,alt=title,loading='lazy'))
         else:a.append(el(home,'span','cms-no-image'))
         a.append(el(home,'time',text=dt));a.append(el(home,'span','news-pill',category));a.append(el(home,'strong',text=title));a.append(el(home,'span','row-arrow','→'));rail.append(a)
-        b=el(archive,'a','news-row',href=url);b['data-category']='award' if category=='受賞' else 'event'
+        b=el(archive,'a','news-row',href=url);b['data-category']=news_archive_categories(item.get('category'))
         if photo:b.append(el(archive,'img',src=photo,alt=title,loading='lazy'))
         else:b.append(el(archive,'span','cms-no-image'))
         b.append(el(archive,'time',text=dt));b.append(el(archive,'span','tag',category));b.append(el(archive,'b',text=title));b.append(el(archive,'span','arrow','↗'));listing.append(b)
