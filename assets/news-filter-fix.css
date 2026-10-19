@@ -1,0 +1,3 @@
+/* NEWS tab filters: override grid/flex display rules when the hidden attribute is set. */
+.home-news-list .home-news-row[hidden],
+.news-rows .news-row[hidden] { display: none !important; }
