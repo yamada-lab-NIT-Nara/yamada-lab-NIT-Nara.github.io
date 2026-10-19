@@ -13,6 +13,8 @@ from pathlib import Path
 ORCID_ID = '0000-0003-0958-1529'
 OUTPUT = Path(__file__).resolve().parent / 'data' / 'orcid.json'
 API = f'https://pub.orcid.org/v3.0/{ORCID_ID}/works'
+FUNDING_API = f'https://pub.orcid.org/v3.0/{ORCID_ID}/fundings'
+FUNDING_OUTPUT = OUTPUT.parent / 'funding.json'
 
 
 def request(url, *, form=None, token=None):
@@ -39,6 +41,58 @@ def get_doi(item):
     return None
 
 
+def funding_year(item, key):
+    value = ((item.get(key) or {}).get('year') or {}).get('value')
+    return str(value) if value and re.fullmatch(r'\d{4}', str(value)) else ''
+
+
+def funding_records(payload):
+    """Normalize ORCID public funding summaries; never infer award amounts or roles."""
+    records = {}
+    for group in payload.get('group', []):
+        for item in group.get('funding-summary', []):
+            title = (((item.get('title') or {}).get('title') or {}).get('value') or '').strip()
+            if not title:
+                continue
+            org = ((item.get('organization') or {}).get('name') or '').strip()
+            start = funding_year(item, 'start-date')
+            end = funding_year(item, 'end-date')
+            ids = []
+            for identifier in ((item.get('external-ids') or {}).get('external-id') or []):
+                kind = (identifier.get('external-id-type') or '').strip()
+                value = (identifier.get('external-id-value') or '').strip()
+                if kind and value:
+                    ids.append({'type': kind, 'value': value})
+            link = ((item.get('url') or {}).get('value') or '').strip()
+            if not link.startswith(('https://', 'http://')):
+                link = ''
+            key = (title.casefold(), org.casefold(), start)
+            record = {'title': title, 'organization': org, 'start_year': start,
+                      'end_year': end, 'type': item.get('type') or '',
+                      'identifiers': ids, 'url': link}
+            if key not in records or len(ids) > len(records[key]['identifiers']):
+                records[key] = record
+    return sorted(records.values(), key=lambda r: (r['start_year'], r['title']), reverse=True)
+
+
+def sync_funding(token):
+    """Failure must never delete previously fetched funding data."""
+    try:
+        payload = request(FUNDING_API, token=token)
+        records = funding_records(payload)
+        if not records:
+            print('No public ORCID funding records found; retaining previous funding data.')
+            return
+        result = {'source': f'https://orcid.org/{ORCID_ID}',
+                  'updated_at': dt.datetime.now(dt.timezone.utc).isoformat(),
+                  'funding': records}
+        FUNDING_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+        FUNDING_OUTPUT.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        print(f'Saved {len(records)} public ORCID funding records.')
+    except Exception as exc:
+        print(f'ORCID funding sync unavailable; retaining previous data: {exc}')
+
+
 def main():
     client_id = os.getenv('ORCID_CLIENT_ID')
     secret = os.getenv('ORCID_CLIENT_SECRET')
@@ -49,6 +103,7 @@ def main():
         'client_id': client_id, 'client_secret': secret,
         'grant_type': 'client_credentials', 'scope': '/read-public'
     })
+    sync_funding(credentials['access_token'])
     works = request(API, token=credentials['access_token'])
     journal_types = {'journal-article'}
     entries = {}
