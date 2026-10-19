@@ -39,7 +39,15 @@ def el(s,tag,cls=None,text=None,**attrs):
 def insert_html(target,html):
     frag=BeautifulSoup(html or '', 'html.parser')
     for node in list(frag.contents):target.append(node)
+def category_text(x, default=''):
+    if isinstance(x, list):
+        return '・'.join(str(v) for v in x if v is not None) or default
+    if isinstance(x, dict):
+        return str(x.get('name') or x.get('value') or x.get('id') or default)
+    return str(x) if x is not None else default
+
 def cat_news(x):
+    x=category_text(x)
     x=x or 'お知らせ'
     return ('research' if x in ('研究成果','学会・研究発表') else 'student' if x=='受賞' else 'event')
 def safeid(x):
@@ -52,7 +60,7 @@ def build_news(news):
     if not rail or not listing:raise RuntimeError('NEWS containers missing from templates')
     rail.clear();listing.clear()
     for item in sorted(news,key=lambda x:x.get('date') or x.get('publishedAt') or '',reverse=True):
-        cid=safeid(item['id']); title=item.get('title') or '無題'; category=item.get('category') or 'お知らせ'; dt=date(item); url=f'news/{cid}.html'; photo=img_url(item)
+        cid=safeid(item['id']); title=item.get('title') or '無題'; category=category_text(item.get('category'),'お知らせ'); dt=date(item); url=f'news/{cid}.html'; photo=img_url(item)
         a=el(home,'a','home-news-row',href=url);a['data-category']=cat_news(category)
         if photo:a.append(el(home,'img',src=photo,alt=title,loading='lazy'))
         else:a.append(el(home,'span','cms-no-image'))
@@ -87,7 +95,7 @@ def build_seeds(items):
     for old in list(page.select('section.seeds-section')):old.decompose()
     anchor=page.select_one('section.seeds-contact-band')
     for i,item in enumerate(sorted(items,key=lambda x:(x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('title',''))),1):
-        cid=safeid(item['id']);title=item.get('title') or '無題';cat=item.get('category') or '研究シーズ';photo=img_url(item)
+        cid=safeid(item['id']);title=item.get('title') or '無題';cat=category_text(item.get('category'),'研究シーズ');photo=img_url(item)
         url=f'seeds/{cid}.html'
         card=el(home,'a','seed-carousel-card',href=url)
         ph=el(home,'div','seed-carousel-photo')
@@ -127,16 +135,16 @@ def build_members(items):
     section.append(el(page,'p','eyebrow','People'))
     section.append(el(page,'h2',text='研究室メンバー'))
     people=sorted(items,key=lambda x:(x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('name','')))
-    faculty=[p for p in people if p.get('category')=='教員']
-    students=[p for p in people if p.get('category')=='学生']
-    others=[p for p in people if p.get('category') not in ('教員','学生')]
+    faculty=[p for p in people if '教員' in category_text(p.get('category')).split('・')]
+    students=[p for p in people if '学生' in category_text(p.get('category')).split('・')]
+    others=[p for p in people if not any(v in category_text(p.get('category')).split('・') for v in ('教員','学生'))]
     for heading,group in [('教員',faculty),('学生',students),('その他',others)]:
         if not group:continue
         section.append(el(page,'h3','cms-member-group-title',heading))
         grid=el(page,'div','cms-member-grid');section.append(grid)
         for p in group:
             cid=safeid(p['id']);name=p.get('name') or '氏名未登録'
-            is_faculty=p.get('category')=='教員'
+            is_faculty='教員' in category_text(p.get('category')).split('・')
             card=el(page,'a' if is_faculty else 'div','cms-member-card',**({'href':f'members/{cid}.html'} if is_faculty else {}))
             photo=member_photo(p)
             if photo:card.append(el(page,'img','cms-member-photo',src=photo,alt=name,loading='lazy'))
