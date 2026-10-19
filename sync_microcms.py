@@ -46,55 +46,35 @@ def category_text(x, default=''):
         return str(x.get('name') or x.get('value') or x.get('id') or default)
     return str(x) if x is not None else default
 
-def news_archive_categories(raw):
-    """Map one or more microCMS category labels to archive filter groups."""
-    if isinstance(raw, list):
-        labels=[category_text(v) for v in raw]
-    else:
-        labels=[category_text(raw)]
-    labels=[x.strip() for x in labels if x and x.strip()]
-    awards=('受賞','成果','論文','研究発表','学会','発表','特許','表彰')
-    events=('イベント','交流','お知らせ','講習','講演','セミナー','ワークショップ','地域','学生','活動','開催','参加')
-    groups=set()
-    for label in labels:
-        if any(word in label for word in awards):groups.add('award')
-        if any(word in label for word in events):groups.add('event')
-    if not groups:groups.add('event')
-    return ' '.join(x for x in ('event','award') if x in groups)
-
 def news_categories(raw):
-    """Return filter groups for both homepage and archive, supporting multi-select labels."""
+    """Classify published CMS category labels into multiple tab groups."""
     if isinstance(raw, list):
         labels = [category_text(v).strip() for v in raw]
     else:
         labels = [category_text(raw).strip()]
     labels = [v for v in labels if v]
-    text = '・'.join(labels)
     groups = set()
-    # Research results and student achievements may overlap with events.
-    if any(k in text for k in ('研究', '設備', '論文', '成果', '学会', '発表', '特許', '触媒', '分析')):
-        groups.add('research')
-        groups.add('award')
-    if any(k in text for k in ('受賞', '表彰', '学生', '卒業', '修了', '教育', 'TA活動')):
-        groups.add('student')
-    if any(k in text for k in ('受賞', '表彰')):
-        groups.add('award')
-    if any(k in text for k in ('イベント', '交流', 'お知らせ', '講習', '講演', 'セミナー', 'ワークショップ', '地域', '開催', '参加', '見学')):
-        groups.add('event')
-    if not groups:
-        groups.add('event')
-    # Archive has no student tab; classify student achievements under award.
-    if 'student' in groups and 'award' not in groups and 'research' not in groups:
-        groups.add('event')
+    for label in labels:
+        # Composite labels can belong to multiple categories.
+        if any(word in label for word in ('イベント', '交流', 'お知らせ', '講習', '講演', 'セミナー', 'ワークショップ', '地域', '開催', '見学')):
+            groups.add('event')
+        if any(word in label for word in ('研究', '設備', '論文', '成果', '学会', '発表', '特許', '触媒', '分析')):
+            groups.add('research')
+        if any(word in label for word in ('受賞', '表彰', '賞')):
+            groups.add('award')
+        # The archive '受賞・成果' also includes research achievements.
+        if any(word in label for word in ('研究成果', '論文', '学会', '研究発表', '特許')):
+            groups.add('award')
+    if not groups:groups.add('event')
     return groups
 
 def cat_news(raw):
-    groups = news_categories(raw)
-    return ' '.join(v for v in ('event', 'research', 'student') if v in groups)
+    groups=news_categories(raw)
+    return ' '.join(v for v in ('event','research','award') if v in groups)
 
 def news_archive_categories(raw):
-    groups = news_categories(raw)
-    return ' '.join(v for v in ('event', 'award') if v in groups)
+    groups=news_categories(raw)
+    return ' '.join(v for v in ('event','award') if v in groups)
 
 def safeid(x):
     if not re.fullmatch(r'[a-zA-Z0-9_-]+',x or ''):raise ValueError('Invalid microCMS content ID')
