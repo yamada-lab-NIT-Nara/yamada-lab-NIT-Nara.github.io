@@ -433,3 +433,14 @@ a.cms-member-card:hover{border-color:#32a5a8;transform:translateY(-2px)}
 .equipment-grid .cms-equipment-group-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px;align-items:start;width:100%;min-width:0}
 .equipment-grid .cms-equipment-group-grid>.equipment-card{grid-column:auto!important;width:100%!important;max-width:none!important;min-width:0;box-sizing:border-box;margin:0}
 @media(max-width:720px){.equipment-grid .cms-equipment-group-grid{grid-template-columns:minmax(0,1fr)!important}}
+
+/* NEWS article: optional microCMS Photo gallery. */
+.cms-news-gallery{margin:38px 0 30px}
+.cms-news-gallery h3{font-size:14px;letter-spacing:.12em;color:#173e59;margin:0 0 15px}
+.cms-news-gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.cms-news-gallery-item{display:block;overflow:hidden;border-radius:8px;background:#edf3f6;aspect-ratio:4/3}
+.cms-news-gallery-item img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .2s ease}
+.cms-news-gallery-item:hover img{transform:scale(1.04)}
+.cms-news-gallery-grid:has(> :only-child){grid-template-columns:minmax(0,560px)}
+@media(max-width:700px){.cms-news-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}}
+@media(max-width:420px){.cms-news-gallery-grid{grid-template-columns:1fr}}
