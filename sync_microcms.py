@@ -39,7 +39,15 @@ def el(s,tag,cls=None,text=None,**attrs):
 def insert_html(target,html):
     frag=BeautifulSoup(html or '', 'html.parser')
     for node in list(frag.contents):target.append(node)
+def category_text(x, default=''):
+    if isinstance(x, list):
+        return '・'.join(str(v) for v in x if v is not None) or default
+    if isinstance(x, dict):
+        return str(x.get('name') or x.get('value') or x.get('id') or default)
+    return str(x) if x is not None else default
+
 def cat_news(x):
+    x=category_text(x)
     x=x or 'お知らせ'
     return ('research' if x in ('研究成果','学会・研究発表') else 'student' if x=='受賞' else 'event')
 def safeid(x):
@@ -52,7 +60,7 @@ def build_news(news):
     if not rail or not listing:raise RuntimeError('NEWS containers missing from templates')
     rail.clear();listing.clear()
     for item in sorted(news,key=lambda x:x.get('date') or x.get('publishedAt') or '',reverse=True):
-        cid=safeid(item['id']); title=item.get('title') or '無題'; category=item.get('category') or 'お知らせ'; dt=date(item); url=f'news/{cid}.html'; photo=img_url(item)
+        cid=safeid(item['id']); title=item.get('title') or '無題'; category=category_text(item.get('category'),'お知らせ'); dt=date(item); url=f'news/{cid}.html'; photo=img_url(item)
         a=el(home,'a','home-news-row',href=url);a['data-category']=cat_news(category)
         if photo:a.append(el(home,'img',src=photo,alt=title,loading='lazy'))
         else:a.append(el(home,'span','cms-no-image'))
@@ -87,7 +95,7 @@ def build_seeds(items):
     for old in list(page.select('section.seeds-section')):old.decompose()
     anchor=page.select_one('section.seeds-contact-band')
     for i,item in enumerate(sorted(items,key=lambda x:(x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('title',''))),1):
-        cid=safeid(item['id']);title=item.get('title') or '無題';cat=item.get('category') or '研究シーズ';photo=img_url(item)
+        cid=safeid(item['id']);title=item.get('title') or '無題';cat=category_text(item.get('category'),'研究シーズ');photo=img_url(item)
         url=f'seeds/{cid}.html'
         card=el(home,'a','seed-carousel-card',href=url)
         ph=el(home,'div','seed-carousel-photo')
@@ -123,28 +131,49 @@ def build_members(items):
     page=soup(T/'members.html')
     section=page.select_one('#members .shell')
     if section is None:raise RuntimeError('MEMBERS section missing from template')
+    section['class']=['shell','cms-members-shell']
     section.clear()
     section.append(el(page,'p','eyebrow','People'))
     section.append(el(page,'h2',text='研究室メンバー'))
+    section.append(el(page,'p','cms-members-lead',text='教員・学生の研究活動を紹介します。教員の経歴や研究分野はプロフィールからご覧いただけます。'))
     people=sorted(items,key=lambda x:(x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('name','')))
-    faculty=[p for p in people if p.get('category')=='教員']
-    students=[p for p in people if p.get('category')=='学生']
-    others=[p for p in people if p.get('category') not in ('教員','学生')]
-    for heading,group in [('教員',faculty),('学生',students),('その他',others)]:
+    faculty=[p for p in people if '教員' in category_text(p.get('category')).split('・')]
+    students=[p for p in people if '学生' in category_text(p.get('category')).split('・')]
+    others=[p for p in people if not any(v in category_text(p.get('category')).split('・') for v in ('教員','学生'))]
+    student_years=sorted({str(x.get('academicYear')) for x in students if x.get('academicYear') is not None},reverse=True)
+    groups=[('教員',faculty)]
+    if student_years:
+        for year in student_years:
+            groups.append((f'{year}年度', [x for x in students if str(x.get('academicYear'))==year]))
+        ungrouped=[x for x in students if x.get('academicYear') is None]
+        if ungrouped:groups.append(('学生（年度未設定）',ungrouped))
+    else:groups.append(('学生',students))
+    groups.append(('その他',others))
+    for heading,group in groups:
         if not group:continue
-        section.append(el(page,'h3','cms-member-group-title',heading))
-        grid=el(page,'div','cms-member-grid');section.append(grid)
+        faculty_group=heading=='教員'
+        wrapper=el(page,'div','cms-member-section')
+        wrapper.append(el(page,'h3','cms-member-group-title',heading))
+        grid=el(page,'div','cms-member-grid cms-faculty-grid' if faculty_group else 'cms-member-grid cms-student-grid')
+        wrapper.append(grid);section.append(wrapper)
         for p in group:
             cid=safeid(p['id']);name=p.get('name') or '氏名未登録'
-            is_faculty=p.get('category')=='教員'
-            card=el(page,'a' if is_faculty else 'div','cms-member-card',**({'href':f'members/{cid}.html'} if is_faculty else {}))
+            is_faculty='教員' in category_text(p.get('category')).split('・')
+            card=el(page,'a' if is_faculty else 'div','cms-member-card cms-faculty-card' if is_faculty else 'cms-member-card cms-student-card',**({'href':f'members/{cid}.html'} if is_faculty else {}))
             photo=member_photo(p)
-            if photo:card.append(el(page,'img','cms-member-photo',src=photo,alt=name,loading='lazy'))
-            info=el(page,'div','cms-member-info');info.append(el(page,'strong',text=name))
+            visual=el(page,'div','cms-member-photo-wrap')
+            if photo:visual.append(el(page,'img','cms-member-photo',src=photo,alt=name,loading='lazy'))
+            else:visual.append(el(page,'span','cms-member-photo-placeholder','MEMBER'))
+            card.append(visual)
+            info=el(page,'div','cms-member-info')
+            if is_faculty:info.append(el(page,'span','cms-member-label','FACULTY / 教員'))
+            if p.get('position'):info.append(el(page,'span','cms-member-position',p['position']))
+            info.append(el(page,'strong',text=name))
             if p.get('nameEn'):info.append(el(page,'span','cms-member-en',p['nameEn']))
-            if p.get('position'):info.append(el(page,'span',text=p['position']))
-            if p.get('academicYear') and not is_faculty:info.append(el(page,'small',text=f"{p['academicYear']}年度"))
-            if is_faculty:info.append(el(page,'small',text='プロフィールを見る →'))
+            if is_faculty:
+                if p.get('affiliation'):info.append(el(page,'span','cms-member-affiliation',p['affiliation']))
+                if p.get('researchTheme'):info.append(el(page,'p','cms-member-research',p['researchTheme']))
+                info.append(el(page,'span','cms-member-more','プロフィールを見る →'))
             card.append(info);grid.append(card)
             if not is_faculty:continue
             detail=soup(T/'member-detail.html')
@@ -175,11 +204,97 @@ def build_members(items):
     if not people:section.append(el(page,'p',text='メンバー情報は準備中です。'))
     write(ROOT/'members.html',page)
 
+def facility_photo(item):
+    x=item.get('photo') or {}
+    return x.get('url','') if isinstance(x,dict) else ''
+
+def facility_summary(item):
+    raw=item.get('description') or ''
+    if not isinstance(raw,str):return ''
+    return BeautifulSoup(raw,'html.parser').get_text(' ',strip=True)
+
+def facility_tags(item):
+    raw=item.get('applications') or ''
+    if not isinstance(raw,str):return []
+    return [v.strip(' ・\t') for v in re.split(r'[\n\r]+',raw) if v.strip(' ・\t')]
+
+def build_facilities(items):
+    home=soup(ROOT/'index.html')
+    page=soup(T/'facilities.html')
+    rail=home.select_one('.facility-column')
+    grid=page.select_one('.equipment-grid')
+    if rail is None or grid is None:raise RuntimeError('FACILITIES containers missing')
+    items=sorted(items,key=lambda x:(x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('name') or ''))
+    grid.clear()
+    for i,item in enumerate(items,1):
+        cid=safeid(item['id'])
+        name=item.get('name') or '名称未設定'
+        photo=facility_photo(item)
+        card=el(page,'article','equipment-card cms-equipment-card',id='facility-'+cid)
+        cat=category_text(item.get('category'),'RESEARCH FACILITY')
+        card.append(el(page,'span','equipment-index',f'{i:02d} / {cat}'))
+        card.append(el(page,'h3',text=name))
+        if photo:card.append(el(page,'img','equipment-actual-photo',src=photo,alt=name+' 実機写真',loading='lazy'))
+        if item.get('nameEn'):card.append(el(page,'p','cms-equipment-en',item['nameEn']))
+        spec=' / '.join(str(v) for v in (item.get('manufacturer'),item.get('model')) if v)
+        if spec:card.append(el(page,'p','cms-equipment-spec',spec))
+        if item.get('description'):
+            desc=el(page,'div','cms-richtext cms-equipment-description')
+            insert_html(desc,item['description']);card.append(desc)
+        tags=facility_tags(item)
+        if tags:
+            wrap=el(page,'div','equipment-tags')
+            for tag in tags:wrap.append(el(page,'span',text=tag))
+            card.append(wrap)
+        grid.append(card)
+    if not items:grid.append(el(page,'p',text='研究設備情報は準備中です。'))
+    # Replace only the FE-SEM promotional block; preserve the remainder of the home page.
+    heading=rail.select_one('.block-heading')
+    if heading is None:raise RuntimeError('Home facility heading missing')
+    for node in list(rail.contents):
+        if node is not heading:node.extract()
+    featured=[x for x in items if x.get('showOnHome') is True]
+    if not featured:
+        rail.append(el(home,'p','cms-facility-empty','TOPページに表示する研究設備は準備中です。'))
+    else:
+        carousel=el(home,'div','cms-facility-slider')
+        carousel['aria-label']='主要研究設備スライダー'
+        slides=el(home,'div','cms-facility-slides')
+        for i,item in enumerate(featured):
+            cid=safeid(item['id']);name=item.get('name') or '研究設備'
+            card=el(home,'a','cms-facility-slide'+(' is-active' if i==0 else ''),href='facilities.html#facility-'+cid)
+            card['aria-hidden']='false' if i==0 else 'true'
+            photo=facility_photo(item)
+            if photo:card.append(el(home,'img','cms-facility-slide-photo',src=photo,alt=name,loading='lazy'))
+            else:card.append(el(home,'div','cms-facility-no-photo','RESEARCH FACILITIES'))
+            content=el(home,'div','cms-facility-slide-copy')
+            content.append(el(home,'span','cms-facility-slide-category',category_text(item.get('category'),'RESEARCH FACILITIES')))
+            content.append(el(home,'h3',text=name))
+            description=facility_summary(item)
+            if description:content.append(el(home,'p',text=description[:95]+('…' if len(description)>95 else '')))
+            content.append(el(home,'span','cms-facility-link','設備の詳細を見る →'))
+            card.append(content);slides.append(card)
+        carousel.append(slides)
+        if len(featured)>1:
+            controls=el(home,'div','cms-facility-controls')
+            controls.append(el(home,'button','cms-facility-prev','‹',type='button',**{'aria-label':'前の設備'}))
+            dots=el(home,'div','cms-facility-dots')
+            for i in range(len(featured)):
+                dot=el(home,'button','cms-facility-dot'+(' is-active' if i==0 else ''),type='button',**{'aria-label':f'{i+1}番目の設備を表示'})
+                dot['data-index']=str(i);dots.append(dot)
+            controls.append(dots)
+            controls.append(el(home,'button','cms-facility-next','›',type='button',**{'aria-label':'次の設備'}))
+            carousel.append(controls)
+        rail.append(carousel)
+        rail.append(el(home,'a','outline-button','研究設備一覧を見る →',href='facilities.html'))
+    write(ROOT/'index.html',home)
+    write(ROOT/'facilities.html',page)
+
 def main():
     # Fetch everything before touching the output; failures preserve the published HTML.
-    news=get_items('news');seeds=get_items('seeds');members=get_items('members')
-    print(f'microCMS API fetch successful: news={len(news)}, seeds={len(seeds)}, members={len(members)}',flush=True)
-    for x in news+seeds+members:safeid(x['id'])
-    build_news(news);build_seeds(seeds);build_members(members)
+    news=get_items('news');seeds=get_items('seeds');members=get_items('members');facilities=get_items('facilities')
+    print(f'microCMS API fetch successful: news={len(news)}, seeds={len(seeds)}, members={len(members)}, facilities={len(facilities)}',flush=True)
+    for x in news+seeds+members+facilities:safeid(x['id'])
+    build_news(news);build_seeds(seeds);build_members(members);build_facilities(facilities)
     print('Generated CMS pages successfully')
 if __name__=='__main__':main()

@@ -48,7 +48,7 @@ jobs:
             fi
           fi
 
-      - name: Generate microCMS NEWS, research seeds and members
+      - name: Generate microCMS NEWS, seeds, members and facilities
         env:
           MICROCMS_SERVICE_ID: yamada-lab-nara
           MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}

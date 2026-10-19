@@ -340,3 +340,52 @@ a.cms-member-card:hover{border-color:#32a5a8;transform:translateY(-2px)}
 .cms-member-en{font-size:.83rem}.cms-member-portrait{float:right;max-width:210px;width:35%;border-radius:10px;margin:0 0 1.5rem 1.5rem}
 .cms-member-detail h2{clear:both;margin:2rem 0 .75rem;color:#12384b}.cms-member-detail{min-height:320px}
 @media(max-width:600px){.cms-member-portrait{float:none;width:100%;max-width:220px;margin:0 0 1rem}}
+
+
+/* microCMS facilities carousel */
+.cms-facility-slider{position:relative;min-width:0;margin:0 0 16px}
+.cms-facility-slides{position:relative;min-height:385px;overflow:hidden;background:#071f37}
+.cms-facility-slide{display:none;color:#fff;text-decoration:none}
+.cms-facility-slide.is-active{display:block}
+.cms-facility-slide-photo,.cms-facility-no-photo{display:block;width:100%;height:242px;object-fit:cover}
+.cms-facility-no-photo{display:grid;place-items:center;background:linear-gradient(130deg,#102b48,#287486);color:#fff;letter-spacing:.16em}
+.cms-facility-slide-copy{padding:13px 18px 18px;background:#0b2a46;min-height:144px}
+.cms-facility-slide-category{display:block;color:#80d8d4;font-size:11px;letter-spacing:.09em;margin-bottom:5px}
+.cms-facility-slide-copy h3{font-size:17px;color:#fff;margin:0 0 5px;line-height:1.45}
+.cms-facility-slide-copy p{font-size:12px;color:#d8e5ec;line-height:1.55;margin:0 0 7px}
+.cms-facility-link{font-size:12px;color:#90e4dd}
+.cms-facility-controls{display:flex;align-items:center;justify-content:center;gap:14px;padding:10px 0;background:#f0f5f7}
+.cms-facility-controls>button{border:0;background:transparent;font-size:26px;color:#16425e;cursor:pointer;line-height:1}
+.cms-facility-dots{display:flex;gap:9px}
+.cms-facility-dot{width:9px;height:9px;border:1px solid #527f90;border-radius:50%;background:transparent;padding:0;cursor:pointer}
+.cms-facility-dot.is-active{background:#157e93}
+.cms-facility-slide:focus-visible,.cms-facility-controls button:focus-visible{outline:3px solid #16a6b2;outline-offset:2px}
+.cms-equipment-en{font-size:12px;color:#627c89;margin-top:0}
+.cms-equipment-spec{font-size:13px;font-weight:600;color:#2c5266}
+.cms-equipment-description{font-size:14px;line-height:1.85}
+.cms-equipment-description p{margin:0 0 10px}
+.cms-facility-empty{padding:40px 12px;background:#eff4f6;color:#45616f}
+/* microCMS member presentation */
+#members .cms-members-shell{display:block;max-width:1120px;margin:0 auto}
+.cms-members-shell>.eyebrow{color:#158c97;letter-spacing:.17em;text-transform:uppercase}
+.cms-members-shell>h2{margin:6px 0 10px;color:#0b2e4b;font-size:clamp(25px,2.6vw,36px)}
+.cms-members-lead{color:#506b7b;line-height:1.9;margin:0 0 38px}
+.cms-member-section{margin:0 0 42px}
+.cms-member-group-title{font-size:21px;color:#103956;margin:0 0 18px;padding:0 0 12px;border-bottom:2px solid #d7e8ea}
+.cms-faculty-grid{display:grid;grid-template-columns:1fr;gap:20px}
+.cms-member-card.cms-faculty-card{display:grid;grid-template-columns:minmax(170px,230px) minmax(0,1fr);gap:30px;align-items:stretch;padding:0;overflow:hidden;border:1px solid #dce8ee;border-radius:10px;background:#fff;box-shadow:0 8px 30px rgba(8,37,59,.06);color:#16354d;text-decoration:none;max-width:960px}
+.cms-faculty-card .cms-member-photo-wrap{min-height:275px;background:#e5edf2}
+.cms-faculty-card .cms-member-photo{display:block;width:100%;height:100%;min-height:275px;object-fit:cover;border-radius:0}
+.cms-member-photo-placeholder{display:grid;place-items:center;width:100%;height:100%;min-height:130px;color:#71909c;background:#e6eff2;font-size:11px;letter-spacing:.2em}
+.cms-faculty-card .cms-member-info{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:7px;padding:25px 30px 25px 0}
+.cms-member-label{font-size:11px;color:#1b9299;font-weight:700;letter-spacing:.13em}
+.cms-member-position{font-size:13px;color:#547080}
+.cms-faculty-card .cms-member-info strong{font-size:clamp(23px,2.6vw,31px);color:#0b304e;line-height:1.35}
+.cms-member-affiliation{font-size:12px;color:#607c8c}
+.cms-member-research{font-size:13px;color:#405e70;line-height:1.7;margin:8px 0;white-space:pre-line}
+.cms-member-more{display:inline-block;font-size:13px;color:#0b7d92;font-weight:600;margin-top:6px}
+.cms-student-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.cms-student-card .cms-member-photo-wrap{width:86px;height:104px;flex-shrink:0}
+.cms-student-card .cms-member-photo{width:86px;height:104px;object-fit:cover;border-radius:6px}
+.cms-student-card .cms-member-info{gap:5px}
+@media(max-width:650px){.cms-member-card.cms-faculty-card{grid-template-columns:110px minmax(0,1fr);gap:14px}.cms-faculty-card .cms-member-photo-wrap,.cms-faculty-card .cms-member-photo{min-height:200px}.cms-faculty-card .cms-member-info{padding:18px 12px 18px 0}.cms-member-research{font-size:12px}.cms-member-affiliation{font-size:11px}.cms-faculty-card .cms-member-info strong{font-size:22px}.cms-facility-slides{min-height:350px}}

@@ -17,3 +17,22 @@
 - 教員の詳細は `members/<CMS ID>.html`、学生は `members.html` の年度付き一覧です。
 - CMSのAPIキーには news, seeds, members のGET権限が必要です。
 - 公開前に `MICROCMS_API_KEY` とGitHub Pages設定を確認してください。
+
+## Research facilities / 研究設備
+
+Create a microCMS list API with endpoint `facilities`.
+
+| Field ID | Type | Purpose |
+| --- | --- | --- |
+| `name` | text | Equipment name |
+| `nameEn` | text | English name |
+| `category` | select | Equipment classification (single or multiple values supported) |
+| `photo` | image | Actual equipment photograph |
+| `model` | text | Model |
+| `manufacturer` | text | Manufacturer |
+| `description` | rich editor | Equipment overview |
+| `applications` | textarea | Uses; one line per item |
+| `sortOrder` | number | Display order |
+| `showOnHome` | boolean | Include in the 5-second homepage equipment carousel |
+
+The same CMS content generates `facilities.html` and the homepage equipment slider. Only **published** items are returned. `showOnHome` must be `true` to appear on the homepage. GitHub Actions runs on each push, daily, or manually via **Actions → Publish laboratory website → Run workflow**; publishing an item in microCMS alone does not trigger an immediate GitHub build.
