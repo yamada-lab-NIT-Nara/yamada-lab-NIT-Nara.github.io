@@ -62,10 +62,40 @@ def news_archive_categories(raw):
     if not groups:groups.add('event')
     return ' '.join(x for x in ('event','award') if x in groups)
 
-def cat_news(x):
-    x=category_text(x)
-    x=x or 'お知らせ'
-    return ('research' if x in ('研究成果','学会・研究発表') else 'student' if x=='受賞' else 'event')
+def news_categories(raw):
+    """Return filter groups for both homepage and archive, supporting multi-select labels."""
+    if isinstance(raw, list):
+        labels = [category_text(v).strip() for v in raw]
+    else:
+        labels = [category_text(raw).strip()]
+    labels = [v for v in labels if v]
+    text = '・'.join(labels)
+    groups = set()
+    # Research results and student achievements may overlap with events.
+    if any(k in text for k in ('研究', '設備', '論文', '成果', '学会', '発表', '特許', '触媒', '分析')):
+        groups.add('research')
+        groups.add('award')
+    if any(k in text for k in ('受賞', '表彰', '学生', '卒業', '修了', '教育', 'TA活動')):
+        groups.add('student')
+    if any(k in text for k in ('受賞', '表彰')):
+        groups.add('award')
+    if any(k in text for k in ('イベント', '交流', 'お知らせ', '講習', '講演', 'セミナー', 'ワークショップ', '地域', '開催', '参加', '見学')):
+        groups.add('event')
+    if not groups:
+        groups.add('event')
+    # Archive has no student tab; classify student achievements under award.
+    if 'student' in groups and 'award' not in groups and 'research' not in groups:
+        groups.add('event')
+    return groups
+
+def cat_news(raw):
+    groups = news_categories(raw)
+    return ' '.join(v for v in ('event', 'research', 'student') if v in groups)
+
+def news_archive_categories(raw):
+    groups = news_categories(raw)
+    return ' '.join(v for v in ('event', 'award') if v in groups)
+
 def safeid(x):
     if not re.fullmatch(r'[a-zA-Z0-9_-]+',x or ''):raise ValueError('Invalid microCMS content ID')
     return x
@@ -77,7 +107,7 @@ def build_news(news):
     rail.clear();listing.clear()
     for item in sorted(news,key=lambda x:x.get('date') or x.get('publishedAt') or '',reverse=True):
         cid=safeid(item['id']); title=item.get('title') or '無題'; category=category_text(item.get('category'),'お知らせ'); dt=date(item); url=f'news/{cid}.html'; photo=img_url(item)
-        a=el(home,'a','home-news-row',href=url);a['data-category']=cat_news(category)
+        a=el(home,'a','home-news-row',href=url);a['data-category']=cat_news(item.get('category'))
         if photo:a.append(el(home,'img',src=photo,alt=title,loading='lazy'))
         else:a.append(el(home,'span','cms-no-image'))
         a.append(el(home,'time',text=dt));a.append(el(home,'span','news-pill',category));a.append(el(home,'strong',text=title));a.append(el(home,'span','row-arrow','→'));rail.append(a)
@@ -170,6 +200,32 @@ def build_members(items):
         faculty_group=heading=='教員'
         wrapper=el(page,'div','cms-member-section')
         wrapper.append(el(page,'h3','cms-member-group-title',heading))
+        if not faculty_group and heading != 'その他':
+            # Student records are displayed as a compact, accessible year-based table.
+            # position is the existing CMS field for the academic level.
+            def student_level(p):
+                value=str(p.get('position') or '').replace(' ', '').replace('　', '')
+                if '専攻科' in value or 'Advanced' in value:
+                    match=re.search(r'[12１２]',value)
+                    return (0, -(int(match.group().translate(str.maketrans('１２','12'))) if match else 0))
+                if '本科' in value or '学科' in value or '年' in value:
+                    match=re.search(r'[1-5１-５]',value)
+                    return (1, -(int(match.group().translate(str.maketrans('１２３４５','12345'))) if match else 0))
+                return (2, 0)
+            table=el(page,'table','cms-student-table')
+            table.append(el(page,'caption','cms-student-table-caption',heading+'の学生一覧'))
+            thead=el(page,'thead');tr=el(page,'tr')
+            for title in ('学年','氏名','英語表記'):tr.append(el(page,'th',text=title,scope='col'))
+            thead.append(tr);table.append(thead)
+            tbody=el(page,'tbody')
+            for p in sorted(group,key=lambda x:(student_level(x),x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('name') or '')):
+                tr=el(page,'tr')
+                tr.append(el(page,'td','cms-student-level',p.get('position') or '—'))
+                tr.append(el(page,'td','cms-student-name',p.get('name') or '氏名未登録'))
+                tr.append(el(page,'td','cms-student-en',p.get('nameEn') or '—'))
+                tbody.append(tr)
+            table.append(tbody);wrapper.append(table);section.append(wrapper)
+            continue
         grid=el(page,'div','cms-member-grid cms-faculty-grid' if faculty_group else 'cms-member-grid cms-student-grid')
         wrapper.append(grid);section.append(wrapper)
         for p in group:
