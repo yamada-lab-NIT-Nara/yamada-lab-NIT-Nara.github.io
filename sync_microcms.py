@@ -274,6 +274,14 @@ def facility_tags(item):
     if not isinstance(raw,str):return []
     return [v.strip(' ・\t\u3000') for v in re.split(r'[\n\r]+|(?<!\S)[・●•](?=\s|\S)',raw) if v.strip(' ・\t\u3000')]
 
+# Facility groups use the category selected in microCMS. Unrecognized labels
+# remain visible as their own groups; no CMS schema change is required.
+def facility_group(item):
+    raw = category_text(item.get('category')).strip()
+    if not raw or raw in ('RESEARCH FACILITY', '研究設備', '設備', 'その他'):
+        return 'その他の研究設備'
+    return raw
+
 def build_facilities(items):
     home=soup(ROOT/'index.html')
     page=soup(T/'facilities.html')
@@ -285,29 +293,42 @@ def build_facilities(items):
     # CMS is the single source of truth for instrument cards.
     # The original HTML is retained as a layout template, not as instrument data.
     grid.clear()
-    for i,item in enumerate(items,1):
-        cid=safeid(item['id'])
-        name=item.get('name') or '名称未設定'
-        photo=facility_photo(item)
-        card=el(page,'article','equipment-card cms-equipment-card',id='facility-'+cid)
-        cat=category_text(item.get('category'),'RESEARCH FACILITY')
-        card.append(el(page,'span','equipment-index',f'{i:02d} / {cat}'))
-        card.append(el(page,'h3',text=name))
-        if photo:
-            card.append(el(page,'img','equipment-actual-photo',src=photo,alt=name+' 実機写真',loading='lazy'))
-        if item.get('nameEn'):
-            card.append(el(page,'p','cms-equipment-en',item['nameEn']))
-        spec=' / '.join(str(v) for v in (item.get('manufacturer'),item.get('model')) if v)
-        if spec:card.append(el(page,'p','cms-equipment-spec',spec))
-        if item.get('description'):
-            desc=el(page,'div','cms-richtext cms-equipment-description')
-            insert_html(desc,item['description']);card.append(desc)
-        tags=facility_tags(item)
-        if tags:
-            wrap=el(page,'ul','cms-equipment-applications')
-            for tag in tags:wrap.append(el(page,'li',text=tag))
-            card.append(wrap)
-        grid.append(card)
+    grouped = {}
+    for item in items:
+        grouped.setdefault(facility_group(item), []).append(item)
+    sequence = 0
+    for group_name, group_items in grouped.items():
+        section = el(page,'section','cms-equipment-group')
+        heading = el(page,'h3','cms-equipment-group-title',group_name)
+        section.append(heading)
+        cards = el(page,'div','cms-equipment-group-grid')
+        section.append(cards)
+        grid.append(section)
+        for item in group_items:
+            sequence += 1
+            i = sequence
+            cid=safeid(item['id'])
+            name=item.get('name') or '名称未設定'
+            photo=facility_photo(item)
+            card=el(page,'article','equipment-card cms-equipment-card',id='facility-'+cid)
+            cat=category_text(item.get('category'),'RESEARCH FACILITY')
+            card.append(el(page,'span','equipment-index',f'{i:02d} / {cat}'))
+            card.append(el(page,'h3',text=name))
+            if photo:
+                card.append(el(page,'img','equipment-actual-photo',src=photo,alt=name+' 実機写真',loading='lazy'))
+            if item.get('nameEn'):
+                card.append(el(page,'p','cms-equipment-en',item['nameEn']))
+            spec=' / '.join(str(v) for v in (item.get('manufacturer'),item.get('model')) if v)
+            if spec:card.append(el(page,'p','cms-equipment-spec',spec))
+            if item.get('description'):
+                desc=el(page,'div','cms-richtext cms-equipment-description')
+                insert_html(desc,item['description']);card.append(desc)
+            tags=facility_tags(item)
+            if tags:
+                wrap=el(page,'ul','cms-equipment-applications')
+                for tag in tags:wrap.append(el(page,'li',text=tag))
+                card.append(wrap)
+            cards.append(card)
     if not items:
         grid.append(el(page,'p','cms-facilities-empty','研究設備情報は準備中です。'))
 
