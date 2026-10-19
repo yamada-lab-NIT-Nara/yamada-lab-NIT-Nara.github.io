@@ -405,3 +405,15 @@ a.cms-member-card:hover{border-color:#32a5a8;transform:translateY(-2px)}
 .facility-column .cms-facility-slide-description{color:#526b79;font-size:13px;line-height:1.8;margin:0 0 10px}
 .facility-column .cms-facility-controls{padding:4px 0;background:transparent}
 @media(max-width:720px){.equipment-grid>.equipment-card img.equipment-actual-photo{height:200px}}
+
+/* Facilities: CMS-only instrument cards, original two-column grid preserved. */
+.equipment-grid>.cms-equipment-card{min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden}
+.equipment-grid>.cms-equipment-card img.equipment-actual-photo{display:block;width:100%;height:230px;max-height:230px;object-fit:contain;object-position:center;background:#f0f4f6}
+.cms-equipment-applications{display:grid;grid-template-columns:1fr;gap:7px;margin:14px 0 0;padding:0;list-style:none}
+.cms-equipment-applications li{position:relative;padding:8px 10px 8px 22px;background:#edf3f6;color:#27485c;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.cms-equipment-applications li:before{content:'•';position:absolute;left:9px;color:#148a9a}
+.cms-laboratory-overview{margin:25px 0 0;padding:24px 28px;border:1px solid #d9e3e9;background:#fff}
+.cms-laboratory-overview h3{margin:0 0 10px;color:#153d53;font-size:19px}
+.cms-laboratory-overview p{font-size:14px;line-height:1.85;color:#425e6d}
+.cms-laboratory-overview .equipment-tags{margin-top:12px}
+@media(max-width:720px){.equipment-grid>.cms-equipment-card img.equipment-actual-photo{height:200px;max-height:200px}.cms-laboratory-overview{padding:20px}}
