@@ -225,10 +225,20 @@ def build_facilities(items):
     grid=page.select_one('.equipment-grid')
     if rail is None or grid is None:raise RuntimeError('FACILITIES containers missing')
     items=sorted(items,key=lambda x:(x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('name') or ''))
-    grid.clear()
+
+    # Preserve the original, hand-designed HTML cards and their descriptions.
+    # Only replace an existing instrument when the CMS entry clearly identifies it.
+    originals=list(grid.select(':scope > article.equipment-card'))
+    def matching_card(item):
+        identifier=' '.join(str(item.get(k) or '') for k in ('name','nameEn','model')).lower()
+        for old in originals:
+            oldtext=old.get_text(' ',strip=True).lower()
+            if ('j sm-7800' in identifier.replace('j sm','j sm') or 'jsm-7800' in identifier or 'fe-sem' in identifier or '走査電子顕微鏡' in identifier) and ('fe-sem' in oldtext):return old
+            if ('xps' in identifier or '光電子分光' in identifier) and 'xps' in oldtext:return old
+        return None
+
     for i,item in enumerate(items,1):
-        cid=safeid(item['id'])
-        name=item.get('name') or '名称未設定'
+        cid=safeid(item['id']);name=item.get('name') or '名称未設定'
         photo=facility_photo(item)
         card=el(page,'article','equipment-card cms-equipment-card',id='facility-'+cid)
         cat=category_text(item.get('category'),'RESEARCH FACILITY')
@@ -246,19 +256,36 @@ def build_facilities(items):
             wrap=el(page,'div','equipment-tags')
             for tag in tags:wrap.append(el(page,'span',text=tag))
             card.append(wrap)
-        grid.append(card)
-    if not items:grid.append(el(page,'p',text='研究設備情報は準備中です。'))
-    # Replace only the FE-SEM promotional block; preserve the remainder of the home page.
-    heading=rail.select_one('.block-heading')
-    if heading is None:raise RuntimeError('Home facility heading missing')
-    for node in list(rail.contents):
-        if node is not heading:node.extract()
+        old=matching_card(item)
+        if old is not None:
+            # Keep the original device description and tags as a fallback if not entered in CMS.
+            if not photo:
+                original_photo=old.select_one('img.equipment-actual-photo')
+                if original_photo:card.insert(2,original_photo.extract())
+            if not item.get('description'):
+                old_paragraph=old.find('p')
+                if old_paragraph:card.append(old_paragraph.extract())
+            if not tags:
+                old_tags=old.select_one('.equipment-tags')
+                if old_tags:card.append(old_tags.extract())
+            old.replace_with(card)
+            originals.remove(old)
+        else:
+            # New CMS instruments appear before the laboratory overview card.
+            lab=next((x for x in originals if 'LABORATORY' in x.get_text(' ',strip=True)),None)
+            if lab:lab.insert_before(card)
+            else:grid.append(card)
+
+    # The home feature retains its original 248px image slot and the existing
+    # button/gallery. Only the photo/title/description become rotating CMS data.
     featured=[x for x in items if x.get('showOnHome') is True]
-    if not featured:
-        rail.append(el(home,'p','cms-facility-empty','TOPページに表示する研究設備は準備中です。'))
-    else:
-        carousel=el(home,'div','cms-facility-slider')
-        carousel['aria-label']='主要研究設備スライダー'
+    if featured:
+        original_image=rail.select_one('.facility-image')
+        if original_image is None:raise RuntimeError('Home facility image missing')
+        original_title=rail.find('h3',recursive=False)
+        original_description=rail.find('p',recursive=False)
+        slider=el(home,'div','cms-facility-slider')
+        slider['aria-label']='主要研究設備スライダー'
         slides=el(home,'div','cms-facility-slides')
         for i,item in enumerate(featured):
             cid=safeid(item['id']);name=item.get('name') or '研究設備'
@@ -267,14 +294,11 @@ def build_facilities(items):
             photo=facility_photo(item)
             if photo:card.append(el(home,'img','cms-facility-slide-photo',src=photo,alt=name,loading='lazy'))
             else:card.append(el(home,'div','cms-facility-no-photo','RESEARCH FACILITIES'))
-            content=el(home,'div','cms-facility-slide-copy')
-            content.append(el(home,'span','cms-facility-slide-category',category_text(item.get('category'),'RESEARCH FACILITIES')))
-            content.append(el(home,'h3',text=name))
+            card.append(el(home,'h3','cms-facility-slide-title',name))
             description=facility_summary(item)
-            if description:content.append(el(home,'p',text=description[:95]+('…' if len(description)>95 else '')))
-            content.append(el(home,'span','cms-facility-link','設備の詳細を見る →'))
-            card.append(content);slides.append(card)
-        carousel.append(slides)
+            if description:card.append(el(home,'p','cms-facility-slide-description',description[:90]+('…' if len(description)>90 else '')))
+            slides.append(card)
+        slider.append(slides)
         if len(featured)>1:
             controls=el(home,'div','cms-facility-controls')
             controls.append(el(home,'button','cms-facility-prev','‹',type='button',**{'aria-label':'前の設備'}))
@@ -284,9 +308,11 @@ def build_facilities(items):
                 dot['data-index']=str(i);dots.append(dot)
             controls.append(dots)
             controls.append(el(home,'button','cms-facility-next','›',type='button',**{'aria-label':'次の設備'}))
-            carousel.append(controls)
-        rail.append(carousel)
-        rail.append(el(home,'a','outline-button','研究設備一覧を見る →',href='facilities.html'))
+            slider.append(controls)
+        original_image.replace_with(slider)
+        if original_title:original_title.decompose()
+        if original_description:original_description.decompose()
+    # With no featured CMS items, leave the original FE-SEM feature unchanged.
     write(ROOT/'index.html',home)
     write(ROOT/'facilities.html',page)
 
