@@ -216,7 +216,7 @@ def facility_summary(item):
 def facility_tags(item):
     raw=item.get('applications') or ''
     if not isinstance(raw,str):return []
-    return [v.strip(' ・\t') for v in re.split(r'[\n\r]+',raw) if v.strip(' ・\t')]
+    return [v.strip(' ・\t\u3000') for v in re.split(r'[\n\r]+|(?<!\S)[・●•](?=\s|\S)',raw) if v.strip(' ・\t\u3000')]
 
 def build_facilities(items):
     home=soup(ROOT/'index.html')
@@ -226,26 +226,21 @@ def build_facilities(items):
     if rail is None or grid is None:raise RuntimeError('FACILITIES containers missing')
     items=sorted(items,key=lambda x:(x.get('sortOrder') if isinstance(x.get('sortOrder'),(int,float)) else 9999,x.get('name') or ''))
 
-    # Preserve the original, hand-designed HTML cards and their descriptions.
-    # Only replace an existing instrument when the CMS entry clearly identifies it.
-    originals=list(grid.select(':scope > article.equipment-card'))
-    def matching_card(item):
-        identifier=' '.join(str(item.get(k) or '') for k in ('name','nameEn','model')).lower()
-        for old in originals:
-            oldtext=old.get_text(' ',strip=True).lower()
-            if ('j sm-7800' in identifier.replace('j sm','j sm') or 'jsm-7800' in identifier or 'fe-sem' in identifier or '走査電子顕微鏡' in identifier) and ('fe-sem' in oldtext):return old
-            if ('xps' in identifier or '光電子分光' in identifier) and 'xps' in oldtext:return old
-        return None
-
+    # CMS is the single source of truth for instrument cards.
+    # The original HTML is retained as a layout template, not as instrument data.
+    grid.clear()
     for i,item in enumerate(items,1):
-        cid=safeid(item['id']);name=item.get('name') or '名称未設定'
+        cid=safeid(item['id'])
+        name=item.get('name') or '名称未設定'
         photo=facility_photo(item)
         card=el(page,'article','equipment-card cms-equipment-card',id='facility-'+cid)
         cat=category_text(item.get('category'),'RESEARCH FACILITY')
         card.append(el(page,'span','equipment-index',f'{i:02d} / {cat}'))
         card.append(el(page,'h3',text=name))
-        if photo:card.append(el(page,'img','equipment-actual-photo',src=photo,alt=name+' 実機写真',loading='lazy'))
-        if item.get('nameEn'):card.append(el(page,'p','cms-equipment-en',item['nameEn']))
+        if photo:
+            card.append(el(page,'img','equipment-actual-photo',src=photo,alt=name+' 実機写真',loading='lazy'))
+        if item.get('nameEn'):
+            card.append(el(page,'p','cms-equipment-en',item['nameEn']))
         spec=' / '.join(str(v) for v in (item.get('manufacturer'),item.get('model')) if v)
         if spec:card.append(el(page,'p','cms-equipment-spec',spec))
         if item.get('description'):
@@ -253,28 +248,12 @@ def build_facilities(items):
             insert_html(desc,item['description']);card.append(desc)
         tags=facility_tags(item)
         if tags:
-            wrap=el(page,'div','equipment-tags')
-            for tag in tags:wrap.append(el(page,'span',text=tag))
+            wrap=el(page,'ul','cms-equipment-applications')
+            for tag in tags:wrap.append(el(page,'li',text=tag))
             card.append(wrap)
-        old=matching_card(item)
-        if old is not None:
-            # Keep the original device description and tags as a fallback if not entered in CMS.
-            if not photo:
-                original_photo=old.select_one('img.equipment-actual-photo')
-                if original_photo:card.insert(2,original_photo.extract())
-            if not item.get('description'):
-                old_paragraph=old.find('p')
-                if old_paragraph:card.append(old_paragraph.extract())
-            if not tags:
-                old_tags=old.select_one('.equipment-tags')
-                if old_tags:card.append(old_tags.extract())
-            old.replace_with(card)
-            originals.remove(old)
-        else:
-            # New CMS instruments appear before the laboratory overview card.
-            lab=next((x for x in originals if 'LABORATORY' in x.get_text(' ',strip=True)),None)
-            if lab:lab.insert_before(card)
-            else:grid.append(card)
+        grid.append(card)
+    if not items:
+        grid.append(el(page,'p','cms-facilities-empty','研究設備情報は準備中です。'))
 
     # The home feature retains its original 248px image slot and the existing
     # button/gallery. Only the photo/title/description become rotating CMS data.
