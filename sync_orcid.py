@@ -93,6 +93,71 @@ def sync_funding(token):
         print(f'ORCID funding sync unavailable; retaining previous data: {exc}')
 
 
+PATENT_OUTPUT = OUTPUT.parent / 'patents.json'
+PATENT_TYPES = {'patent', 'invention', 'license', 'registered-copyright', 'trademark'}
+
+
+def orcid_text(value):
+    """Read an ORCID text field, which may be a {value: ...} object."""
+    if isinstance(value, dict):
+        value = value.get('value')
+    return str(value or '').strip()
+
+
+def patent_records(payload, token):
+    """Read public IP works; fetch work detail if subtitle is absent in summary."""
+    records = {}
+    for group in payload.get('group', []):
+        for summary in group.get('work-summary', []):
+            kind = (summary.get('type') or summary.get('publication-type') or '').lower()
+            if kind not in PATENT_TYPES:
+                continue
+            title_block = summary.get('title') or {}
+            title = orcid_text(title_block.get('title'))
+            subtitle = orcid_text(title_block.get('subtitle'))
+            if not subtitle and summary.get('put-code') is not None:
+                try:
+                    detail = request(f'https://pub.orcid.org/v3.0/{ORCID_ID}/work/{summary["put-code"]}', token=token)
+                    detail_title = detail.get('title') or {}
+                    subtitle = orcid_text(detail_title.get('subtitle'))
+                    title = title or orcid_text(detail_title.get('title'))
+                except Exception as exc:
+                    print(f'Patent detail unavailable ({summary.get("put-code")}): {exc}')
+            if not title:
+                continue
+            identifiers = []
+            for external in ((summary.get('external-ids') or {}).get('external-id') or []):
+                value = orcid_text(external.get('external-id-value'))
+                if value:
+                    identifiers.append({'type': orcid_text(external.get('external-id-type')), 'value': value})
+            url = orcid_text(summary.get('url'))
+            if not url.startswith(('https://', 'http://')):
+                url = ''
+            record = {'title': title, 'subtitle': subtitle, 'year': year_for(summary) or None,
+                      'type': kind, 'identifiers': identifiers, 'url': url}
+            key = (title.casefold(), subtitle.casefold())
+            if key not in records or len(identifiers) > len(records[key]['identifiers']):
+                records[key] = record
+    return sorted(records.values(), key=lambda x: (x['year'] or 0, x['title']), reverse=True)
+
+
+def sync_patents(works, token):
+    """Keep previously published patent data if ORCID fails or has no matching records."""
+    try:
+        records = patent_records(works, token)
+        if not records:
+            print('No public ORCID IP works found; retaining previous patent data.')
+            return
+        payload = {'source': f'https://orcid.org/{ORCID_ID}',
+                   'updated_at': dt.datetime.now(dt.timezone.utc).isoformat(),
+                   'patents': records}
+        PATENT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+        PATENT_OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        print(f'Saved {len(records)} public ORCID IP works.')
+    except Exception as exc:
+        print(f'ORCID patent sync unavailable; retaining previous data: {exc}')
+
+
 def main():
     client_id = os.getenv('ORCID_CLIENT_ID')
     secret = os.getenv('ORCID_CLIENT_SECRET')
@@ -105,6 +170,7 @@ def main():
     })
     sync_funding(credentials['access_token'])
     works = request(API, token=credentials['access_token'])
+    sync_patents(works, credentials['access_token'])
     journal_types = {'journal-article'}
     entries = {}
     for group in works.get('group', []):
