@@ -388,7 +388,17 @@ a.cms-member-card:hover{border-color:#32a5a8;transform:translateY(-2px)}
 .cms-student-card .cms-member-photo-wrap{width:86px;height:104px;flex-shrink:0}
 .cms-student-card .cms-member-photo{width:86px;height:104px;object-fit:cover;border-radius:6px}
 .cms-student-card .cms-member-info{gap:5px}
-@media(max-width:650px){.cms-member-card.cms-faculty-card{grid-template-columns:110px minmax(0,1fr);gap:14px}.cms-faculty-card .cms-member-photo-wrap,.cms-faculty-card .cms-member-photo{min-height:200px}.cms-faculty-card .cms-member-info{padding:18px 12px 18px 0}.cms-member-research{font-size:12px}.cms-member-affiliation{font-size:11px}.cms-faculty-card .cms-member-info strong{font-size:22px}.cms-facility-slides{min-height:350px}}
+@media(max-width:650px){
+  /* Faculty portrait: mobile layout must not stretch with biography text. */
+  .cms-member-card.cms-faculty-card{grid-template-columns:minmax(0,1fr);gap:0}
+  .cms-faculty-card .cms-member-photo-wrap{width:100%;min-height:0;height:auto;padding:20px 20px 0;background:transparent;display:flex;justify-content:center;align-items:flex-start}
+  .cms-faculty-card .cms-member-photo{display:block;width:100%;max-width:240px;height:auto;min-height:0;max-height:none;object-fit:contain;border-radius:8px}
+  .cms-faculty-card .cms-member-info{padding:18px 20px 22px;min-width:0}
+  .cms-member-research{font-size:12px}
+  .cms-member-affiliation{font-size:11px}
+  .cms-faculty-card .cms-member-info strong{font-size:22px}
+  .cms-facility-slides{min-height:350px}
+}
 
 /* Facility layout correction: keep original site proportions. */
 .equipment-grid{min-width:0;align-items:start}
