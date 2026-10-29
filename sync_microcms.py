@@ -1,5 +1,5 @@
 from pathlib import Path
-import json, os, urllib.request, urllib.parse, re, shutil
+import json, os, urllib.request, urllib.parse, re, shutil, hashlib
 from datetime import datetime
 from bs4 import BeautifulSoup
 ROOT=Path(__file__).resolve().parent
@@ -27,6 +27,36 @@ def write(path,html):path.parent.mkdir(parents=True,exist_ok=True);path.write_te
 def img_url(item):
     x=item.get('thumbnail') or {}
     return x.get('url','') if isinstance(x,dict) else ''
+def local_news_image(url):
+    """Save a NEWS image into GitHub Pages to avoid third-party embedding issues.
+
+    Returns a root-relative-to-repository URL such as news/images/xxx.jpg.
+    If download fails, retain the original URL and log a warning.
+    """
+    if not url or not url.startswith(('https://', 'http://')):
+        return url
+    parsed = urllib.parse.urlparse(url)
+    ext = Path(parsed.path).suffix.lower()
+    if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'):
+        ext = '.jpg'
+    name = hashlib.sha256(url.encode('utf8')).hexdigest()[:24] + ext
+    dest = ROOT / 'news' / 'images' / name
+    if dest.is_file() and dest.stat().st_size > 0:
+        return 'news/images/' + name
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (compatible; YamadaLabSite/1.0)'})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            mime = resp.headers.get('Content-Type', '').lower()
+            data = resp.read(20 * 1024 * 1024 + 1)
+        if not mime.startswith('image/') or not data or len(data) > 20 * 1024 * 1024:
+            raise ValueError(f'Invalid image response: {mime}, {len(data)} bytes')
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        return 'news/images/' + name
+    except Exception as e:
+        print(f'WARNING: NEWS image download failed ({url}): {e}', flush=True)
+        return url
+
 def news_gallery_urls(item):
     """Read the case-sensitive microCMS multiple-image field Photo."""
     photos = item.get('Photo') or []
@@ -104,13 +134,13 @@ def build_news(news):
     if not rail or not listing:raise RuntimeError('NEWS containers missing from templates')
     rail.clear();listing.clear()
     for item in sorted(news,key=lambda x:x.get('date') or x.get('publishedAt') or '',reverse=True):
-        cid=safeid(item['id']); title=item.get('title') or '無題'; category=category_text(item.get('category'),'お知らせ'); dt=date(item); url=f'news/{cid}.html'; photo=img_url(item)
+        cid=safeid(item['id']); title=item.get('title') or '無題'; category=category_text(item.get('category'),'お知らせ'); dt=date(item); url=f'news/{cid}.html'; photo=local_news_image(img_url(item))
         a=el(home,'a','home-news-row',href=url);a['data-category']=cat_news(item.get('category'))
-        if photo:a.append(el(home,'img',src=photo,alt=title,loading='lazy'))
+        if photo:a.append(el(home,'img',src=photo,alt=title,loading='eager'))
         else:a.append(el(home,'span','cms-no-image'))
         a.append(el(home,'time',text=dt));a.append(el(home,'span','news-pill',category));a.append(el(home,'strong',text=title));a.append(el(home,'span','row-arrow','→'));rail.append(a)
         b=el(archive,'a','news-row',href=url);b['data-category']=news_archive_categories(item.get('category'))
-        if photo:b.append(el(archive,'img',src=photo,alt=title,loading='lazy'))
+        if photo:b.append(el(archive,'img',src=photo,alt=title,loading='eager'))
         else:b.append(el(archive,'span','cms-no-image'))
         b.append(el(archive,'time',text=dt));b.append(el(archive,'span','tag',category));b.append(el(archive,'b',text=title));b.append(el(archive,'span','arrow','↗'));listing.append(b)
         detail=soup(T/'article.html');detail.title.string=f'{title} | 山田研究室'
@@ -148,7 +178,7 @@ def build_news(news):
         detail.select_one('.page-banner .shell > p:last-child').string=dt
         article=detail.select_one('article .article-shell');article.clear()
         article.append(el(detail,'time',text=dt));article.append(el(detail,'h2',text=title))
-        if photo:article.append(el(detail,'img','article-photo',src=photo,alt=title,loading='lazy'))
+        if photo:article.append(el(detail,'img','article-photo',src=('../'+photo if photo.startswith('news/images/') else photo),alt=title,loading='eager'))
         content=el(detail,'div','cms-richtext');insert_html(content,item.get('body',''));article.append(content)
         gallery_urls = news_gallery_urls(item)
         if gallery_urls:
@@ -156,10 +186,12 @@ def build_news(news):
             gallery.append(el(detail, 'h3', text='PHOTO GALLERY'))
             gallery_grid = el(detail, 'div', 'cms-news-gallery-grid')
             for i, image_url in enumerate(gallery_urls, 1):
-                link = el(detail, 'a', 'cms-news-gallery-item', href=image_url,
+                local_gallery_url = local_news_image(image_url)
+                detail_gallery_url = '../'+local_gallery_url if local_gallery_url.startswith('news/images/') else local_gallery_url
+                link = el(detail, 'a', 'cms-news-gallery-item', href=detail_gallery_url,
                           target='_blank', rel='noopener noreferrer')
                 link['aria-label'] = f'{title} 写真{i}を拡大表示'
-                link.append(el(detail, 'img', src=image_url,
+                link.append(el(detail, 'img', src=detail_gallery_url,
                                alt=f'{title} 写真{i}', loading='lazy'))
                 gallery_grid.append(link)
             gallery.append(gallery_grid)
