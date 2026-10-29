@@ -28,30 +28,43 @@ def img_url(item):
     x=item.get('thumbnail') or {}
     return x.get('url','') if isinstance(x,dict) else ''
 def local_news_image(url):
-    """Save a NEWS image into GitHub Pages to avoid third-party embedding issues.
+    """Download a NEWS image and publish it with its *actual* file format.
 
-    Returns a root-relative-to-repository URL such as news/images/xxx.jpg.
-    If download fails, retain the original URL and log a warning.
+    The URL extension is not reliable for image CDNs: a .jpg URL may return
+    WebP/AVIF bytes. A mismatched extension can break rendering on desktop.
     """
     if not url or not url.startswith(('https://', 'http://')):
         return url
-    parsed = urllib.parse.urlparse(url)
-    ext = Path(parsed.path).suffix.lower()
-    if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'):
-        ext = '.jpg'
-    name = hashlib.sha256(url.encode('utf8')).hexdigest()[:24] + ext
-    dest = ROOT / 'news' / 'images' / name
-    if dest.is_file() and dest.stat().st_size > 0:
-        return 'news/images/' + name
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (compatible; YamadaLabSite/1.0)'})
+        req = urllib.request.Request(
+            url, headers={'User-Agent': 'YamadaLabSite/1.0', 'Accept': 'image/jpeg,image/png,image/webp,image/gif,*/*;q=0.5'})
         with urllib.request.urlopen(req, timeout=30) as resp:
-            mime = resp.headers.get('Content-Type', '').lower()
             data = resp.read(20 * 1024 * 1024 + 1)
-        if not mime.startswith('image/') or not data or len(data) > 20 * 1024 * 1024:
-            raise ValueError(f'Invalid image response: {mime}, {len(data)} bytes')
+            mime = resp.headers.get('Content-Type', '').split(';')[0].lower().strip()
+        if not data or len(data) > 20 * 1024 * 1024:
+            raise ValueError('Image is empty or exceeds 20 MB')
+
+        # Determine the extension from file signatures, not the URL.
+        if data.startswith(b'\\xff\\xd8\\xff'):
+            ext = '.jpg'
+        elif data.startswith(b'\\x89PNG\\r\\n\\x1a\\n'):
+            ext = '.png'
+        elif data.startswith((b'GIF87a', b'GIF89a')):
+            ext = '.gif'
+        elif data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+            ext = '.webp'
+        elif len(data) >= 12 and data[4:8] == b'ftyp' and data[8:12] in (b'avif', b'avis'):
+            ext = '.avif'
+        else:
+            raise ValueError(f'Unrecognized image data (Content-Type={mime})')
+
+        # Content-based name prevents reuse of a previously mislabelled image.
+        name = hashlib.sha256(data).hexdigest()[:24] + ext
+        dest = ROOT / 'news' / 'images' / name
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(data)
+        if not dest.is_file() or dest.stat().st_size != len(data):
+            dest.write_bytes(data)
+        print(f'NEWS image saved: {name} ({mime}, {len(data)} bytes)', flush=True)
         return 'news/images/' + name
     except Exception as e:
         print(f'WARNING: NEWS image download failed ({url}): {e}', flush=True)
