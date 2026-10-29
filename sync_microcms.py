@@ -114,6 +114,36 @@ def build_news(news):
         else:b.append(el(archive,'span','cms-no-image'))
         b.append(el(archive,'time',text=dt));b.append(el(archive,'span','tag',category));b.append(el(archive,'b',text=title));b.append(el(archive,'span','arrow','↗'));listing.append(b)
         detail=soup(T/'article.html');detail.title.string=f'{title} | 山田研究室'
+        # NEWS detail photos: preserve the entire original image, including portraits.
+        # Apply only to generated NEWS detail pages, leaving list thumbnails intact.
+        news_photo_css = detail.new_tag('style')
+        news_photo_css.string = """
+        article .article-shell > img.article-photo {
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          max-height: none !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
+          object-position: center !important;
+        }
+        article .article-shell .cms-richtext img {
+          max-width: 100% !important;
+          height: auto !important;
+          max-height: none !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
+        }
+        article .article-shell .cms-news-gallery-item img {
+          width: 100% !important;
+          height: auto !important;
+          max-height: none !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
+        }
+        """
+        detail.head.append(news_photo_css)
         detail.select_one('.page-banner h1').string=category
         detail.select_one('.page-banner .shell > p:last-child').string=dt
         article=detail.select_one('article .article-shell');article.clear()
